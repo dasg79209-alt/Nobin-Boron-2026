@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nobin Boron 2026 - Automatic Calculator Portal</title>
+    <style>
+        /* CSS Reset & Design Variables */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+
+        :root {
+            --bg-overlay: rgba(5, 15, 28, 0.75);
+            --card-bg: rgba(255, 255, 255, 0.96);
+            --text-color: #1e293b;
+            --accent-color: #0f172a;
+            --gold-color: #d97706;
+            --admin-bg: #f8fafc;
+            --box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        [data-theme="dark"] {
+            --bg-overlay: rgba(3, 7, 18, 0.9);
+            --card-bg: rgba(15, 23, 42, 0.96);
+            --text-color: #f8fafc;
+            --accent-color: #38bdf8;
+            --gold-color: #fbbf24;
+            --admin-bg: #1e293b;
+            --box-shadow: 0 20px 40px rgba(56, 189, 248, 0.15);
+        }
+
+        body {
+            background-image: url('21618.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            color: var(--text-color);
+            overflow-x: hidden;
+        }
+
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--bg-overlay);
+            z-index: 1;
+            backdrop-filter: blur(4px);
+        }
+
+        /* Header Navigation */
+        header {
+            position: relative;
+            z-index: 10;
+            padding: 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.5);
+            border-bottom: 2px solid var(--gold-color);
+            animation: slideDown 0.6s ease-out;
+        }
+
+        .logo-text {
+            color: #fff;
+            font-size: 28px;
+            font-weight: 800;
+            cursor: pointer;
+            text-shadow: 0 0 10px var(--gold-color);
+        }
+
+        .menu-btn {
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .menu-btn span {
+            display: block;
+            width: 30px;
+            height: 3px;
+            background-color: #fff;
+            border-radius: 2px;
+        }
+
+        /* Sidebar Menu */
+        .sidebar {
+            position: fixed;
+            top: 0;
+            right: -320px;
+            width: 320px;
+            height: 100%;
+            background: var(--card-bg);
+            z-index: 100;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.5);
+            padding: 40px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .sidebar.active { right: 0; }
+        .close-btn { align-self: flex-end; cursor: pointer; font-size: 28px; font-weight: bold; color: var(--gold-color); }
+        .sidebar-item { padding: 15px; border-bottom: 1px solid rgba(0,0,0,0.1); cursor: pointer; font-weight: 700; }
+        .sidebar-item:hover { transform: translateX(-10px); color: var(--gold-color); }
+
+        /* Main Container */
+        .container {
+            position: relative;
+            z-index: 5;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 30px 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Top Menu - আড়াআড়ি (Horizontal) লেআউট */
+        .main-menu {
+            display: flex;
+            flex-direction: row;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 40px;
+            width: 100%;
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        .menu-tab {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 2px solid rgba(255,255,255,0.4);
+            padding: 12px 24px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 50px;
+            backdrop-filter: blur(10px);
+            white-space: nowrap;
+            display: inline-block;
+            width: auto;
+        }
+
+        .menu-tab:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(255,255,255,0.3);
+        }
+
+        .menu-tab.active {
+            background: linear-gradient(135deg, var(--gold-color), #f59e0b);
+            border-color: var(--gold-color);
+            color: #000;
+            transform: translateY(-4px);
+            box-shadow: 0 10px 20px rgba(245, 158, 11, 0.4);
+        }
+
+        /* Content Sections */
+        .section-content {
+            background: var(--card-bg);
+            width: 100%;
+            max-width: 950px;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: var(--box-shadow);
+            display: none;
+            margin-bottom: 50px;
+            border: 3px solid transparent;
+        }
+
+        /* গলোয়িং অ্যানিমেশন বর্ডার ইফেক্টস */
+        #date-sec.active { display: block; animation: zoomIn 0.5s ease-out; border-color: #3b82f6; box-shadow: 0 0 25px rgba(59, 130, 246, 0.2); }
+        #fund-sec.active { display: block; animation: zoomIn 0.5s ease-out; border-color: #10b981; box-shadow: 0 0 25px rgba(16, 185, 129, 0.2); }
+        #members-sec.active { display: block; animation: zoomIn 0.5s ease-out; border-color: #f59e0b; box-shadow: 0 0 25px rgba(245, 158, 11, 0.2); }
+        #decor-sec.active { display: block; animation: zoomIn 0.5s ease-out; border-color: #ec4899; box-shadow: 0 0 25px rgba(236, 72, 153, 0.2); }
+        #cost-sec.active { display: block; animation: zoomIn 0.5s ease-out; border-color: #ef4444; box-shadow: 0 0 25px rgba(239, 68, 68, 0.2); }
+
+        h2 { 
+            margin-bottom: 25px; 
+            color: var(--accent-color); 
+            font-size: 32px; 
+            border-bottom: 3px solid var(--gold-color); 
+            padding-bottom: 12px;
+        }
+        
+        h3 { margin: 30px 0 15px; color: var(--gold-color); font-size: 22px; }
+
+        .admin-panel {
+            background: var(--admin-bg);
+            padding: 25px;
+            border-radius: 16px;
+            margin-top: 35px;
+            border: 1px dashed var(--gold-color);
+        }
+        .admin-panel h4 { margin-bottom: 15px; color: #64748b; font-size: 14px; letter-spacing: 1px; }
+        
+        input, select, button {
+            padding: 12px 16px;
+            margin: 8px 0;
+            border-radius: 8px;
+            border: 2px solid #cbd5e1;
+            font-size: 15px;
+            width: 100%;
+        }
+        
+        .btn-submit { 
+            background: linear-gradient(135deg, #1e293b, #0f172a); 
+            color: white; 
+            cursor: pointer; 
+            border: none; 
+            font-weight: bold;
+        }
+        .btn-submit:hover { 
+            background: linear-gradient(135deg, var(--gold-color), #f59e0b); 
+            color: black;
+            transform: translateY(-2px);
+        }
+
+        .welcome-box { 
+            text-align: center; 
+            color: white; 
+            padding: 100px 20px;
+            animation: pulseGlow 3000ms infinite alternate;
+        }
+        .welcome-box h1 { 
+            font-size: 4.5rem; 
+            margin-bottom: 20px; 
+            text-shadow: 0 0 20px rgba(255,255,255,0.6), 0 0 40px var(--gold-color);
+            font-weight: 900;
+        }
+
+        /* Members Grid */
+        .members-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); 
+            gap: 20px; 
+            max-height: 450px; 
+            overflow-y: auto; 
+            padding: 5px;
+        }
+        .member-card { 
+            background: rgba(0,0,0,0.03); 
+            padding: 20px; 
+            border-radius: 12px; 
+            text-align: center; 
+            font-size: 18px; 
+            font-weight: 600;
+            border: 1px solid rgba(0,0,0,0.08);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+        .member-card.admin { 
+            background: linear-gradient(135deg, var(--gold-color), #f59e0b); 
+            color: #000; 
+            font-weight: bold;
+        }
+
+        /* Cost & Fund Layout */
+        .cost-list-container { margin-top: 20px; max-height: 300px; overflow-y: auto; }
+        .cost-item, .fund-item-box {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.02);
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .cost-item { border-left: 4px solid #ef4444; }
+        .fund-item-box { border-left: 4px solid #10b981; }
+        
+        .btn-delete { background: #ef4444; color: white; width: auto; padding: 6px 14px; font-size: 13px; cursor: pointer; border: none; border-radius: 6px; font-weight: bold; }
+        .btn-delete:hover { background: #b91c1c; }
+
+        /* Decoration Gallery */
+        .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 25px; margin-top: 20px; }
+        .gallery-item { background: rgba(0,0,0,0.02); border: 2px solid rgba(0,0,0,0.05); border-radius: 16px; padding: 15px; }
+        .gallery-item img { width: 100%; height: 180px; object-fit: cover; border-radius: 12px; }
+        .gallery-item p { padding: 12px 0 0; font-size: 16px; font-weight: 600; text-align: center; }
+
+        .status-hero {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 25px;
+            padding: 15px;
+            border-radius: 12px;
+            background: rgba(16, 185, 129, 0.1);
+            text-align: center;
+        }
+
+        /* জোড়া হিরো ডিসপ্লে স্টাইল (ফান্ড ও ব্যালেন্স পাশাপাশি সুন্দর দেখানোর জন্য) */
+        .cost-hero-flex {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+        .cost-hero-flex .status-hero {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+        @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyframes pulseGlow { from { transform: scale(1); } to { transform: scale(1.02); } }
+
+        @media (max-width: 768px) {
+            .main-menu { gap: 8px; }
+            .menu-tab { width: 100%; text-align: center; padding: 10px; }
+            .welcome-box h1 { font-size: 2.8rem; }
+            .cost-hero-flex { flex-direction: column; gap: 15px; }
+        }
+        footer { position: relative; z-index: 10; text-align: center; padding: 25px; color: #fff; font-weight: bold; margin-top: auto; background: rgba(0,0,0,0.7); letter-spacing: 2px; }
+    </style>
+</head>
+<body>
+
+    <div class="overlay"></div>
+
+    <header>
+        <div class="logo-text" onclick="showWelcomeScreen()">✨  নবীন বরণ 2026</div>
+        <div class="menu-btn" onclick="toggleSidebar()">
+            <span></span><span></span><span></span>
+        </div>
+    </header>
+
+    <div class="sidebar" id="sidebar">
+        <div class="close-btn" onclick="toggleSidebar()">×</div>
+        <div class="sidebar-item" onclick="toggleTheme()">🌓 Theme Change </div>
+        <div class="sidebar-item" onclick="alert('যোগাযোগ করুন: dasg79209@gmail.com')">📞 Contect </div>
+        <div class="sidebar-item" onclick="alert('ক্লাস XII এর অফিসিয়াল নবীন বরণ ড্যাশবোর্ড।')">ℹ️ About </div>
+    </div>
+
+    <div class="container">
+        
+        <div class="main-menu">
+            <button class="menu-tab" onclick="openSection(event, 'date-sec')">Date</button>
+            <button class="menu-tab" onclick="openSection(event, 'fund-sec')">Fund</button>
+            <button class="menu-tab" onclick="openSection(event, 'members-sec')">Members</button>
+            <button class="menu-tab" onclick="openSection(event, 'decor-sec')">Decoration Styles</button>
+            <button class="menu-tab" onclick="openSection(event, 'cost-sec')"> Total Cost</button>
+        </div>
+
+        <div id="welcome-sec" class="welcome-box">
+            <h1>স্বাগতম আপনাকে!</h1>
+            <p>আমাদের উৎসব পোর্টালটি সম্পূর্ণ প্রস্তুত। লাইভ ট্র্যাকিং দেখতে উপরের অপশনগুলো নির্বাচন করুন।</p>
+        </div>
+
+        <div id="date-sec" class="section-content">
+            <h2>📅 Event Date & Calendar</h2>
+            <p style="font-size: 18px; margin-bottom: 10px;">উৎসবের মূল দিন নির্ধারণ করা হয়েছে:</p>
+            <div style="background: rgba(59, 130, 246, 0.1); padding: 25px; border-radius: 16px; text-align: center; border: 2px dashed #3b82f6;">
+                <h3 style="font-size: 36px; margin: 0; color: #3b82f6;">১০ই জুলাই, ২০২৬ </h3>
+            </div>
+        </div>
+
+        <div id="fund-sec" class="section-content">
+            <h2>💰 Fund Collection Info</h2>
+            <div class="status-hero" style="color: #10b981;">
+                💰 মোট সংগৃহীত ফান্ড: <span id="display-total-fund">০</span> টাকা
+            </div>
+            
+            <p> কালেকশন চেক করার ক্যালেন্ডার:</p>
+            <input type="date" id="search-fund-date" onchange="checkDailyFund()">
+            <div id="fund-search-result" style="margin-top: 15px;"></div>
+
+            <div class="admin-panel">
+                <h4>🔒 Admin Edit Panel (পাসওয়ার্ড আবশ্যক)</h4>
+                <input type="date" id="input-fund-date">
+                <input type="number" id="input-fund-amount" placeholder="কালেকশনের পরিমাণ ">
+                <input type="password" id="fund-pass" placeholder="অ্যাডমিন পাসওয়ার্ড ">
+                <button class="btn-submit" onclick="saveDailyFund()">ফান্ড ডাটা সেভ করুন</button>
+            </div>
+        </div>
+
+        <div id="members-sec" class="section-content">
+            <h2>👥 Managing Committee Members</h2>
+            <p style="font-size: 15px; margin-bottom: 15px; color: #64748b;">* মেম্বার লিস্ট এডিট করতে সরাসরি মূল ইনডেক্স কোডের 'নির্ধারিত অ্যারে' পরিবর্তন করুন।</p>
+            <div class="members-grid" id="members-container"></div>
+        </div>
+
+        <div id="decor-sec" class="section-content">
+            <h2>🎨 Decoration Styles & Gallery</h2>
+            <h3>📌 Fixed Theme Styles </h3>
+            <div class="gallery">
+                <div class="gallery-item">
+                    <img src="21618.png" alt="Theme 1">
+                    <p>অফিসিয়াল লোগো গোল্ডেন থিম</p>
+                </div>
+            </div>
+            <h3 style="margin-top: 45px;">📂 Member Contributed Ideas </h3>
+            <div class="gallery" id="user-gallery"></div>
+            <div class="admin-panel" style="border: 2px dashed #ec4899;">
+                <h4>📤 যেকোনো মেম্বার নতুন আইডিয়া আপলোড করুন </h4>
+                <input type="text" id="user-decor-title" placeholder="ডেকোরেশনের নাম বা আইডিয়া...">
+                <input type="file" id="user-decor-file" accept="image/*">
+                <button class="btn-submit" style="background: #ec4899;" onclick="uploadUserDecor()">গ্যালারিতে সেভ করুন</button>
+            </div>
+        </div>
+
+        <div id="cost-sec" class="section-content">
+            <h2>📉 Expenditure Tracking Dashboard</h2>
+            
+            <div class="cost-hero-flex">
+                <div class="status-hero" style="color: #ef4444; background: rgba(239, 68, 68, 0.1);">
+                    🔴 সর্বমোট খরচের পরিমাণ: <span id="display-total-cost">০</span> টাকা
+                </div>
+                <div class="status-hero" id="balance-hero-box" style="color: #3b82f6; background: rgba(59, 130, 246, 0.1);">
+                    💎 ফান্ডের অবশিষ্ট টাকা: <span id="display-remaining-balance">০</span> টাকা
+                </div>
+            </div>
+
+            <p style="margin-top: 20px;">তারিখ অনুযায়ী খরচের তালিকা দেখুন:</p>
+            <input type="date" id="search-cost-date" onchange="checkDailyCost()">
+            <div id="cost-date-total-output" style="margin-top: 15px; font-size: 18px; font-weight: bold; color: var(--text-color);"></div>
+            <div class="cost-list-container" id="cost-search-result"></div>
+            
+            <div class="admin-panel">
+                <h4>🔒 Admin Edit Panel (খরচ ইনপুট ও এডিট - পাসওয়ার্ড আবশ্যক)</h4>
+                <input type="date" id="input-cost-date">
+                <input type="text" id="input-cost-details" placeholder="খরচের খাতের নাম (যেমন: মাইক বুকিং)">
+                <input type="number" id="input-cost-amount" placeholder="খরচের পরিমাণ (টাকা)">
+                <input type="password" id="cost-pass" placeholder="অ্যাডমিন পাসওয়ার্ড লিখুন">
+                <button class="btn-submit" onclick="saveDailyCost()">খরচ ডাটাবেজে সেভ করুন</button>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>CREAT BY GOPAL @2026©</footer>
+
+    <script>
+        const MASTER_PASS = "2008";
+
+        const permanentMembers = [
+            {name: "Gopal ", role: "Admin"},
+            {name: "Member 1", role: "General"},
+            {name: "Member 2", role: "General"},
+            {name: "Member 3", role: "General"},
+            {name: "Member 4", role: "General"},
+            {name: "Member 5", role: "General"},
+            {name: "Member 6", role: "General"},
+            {name: "Member 7", role: "General"},
+            {name: "Member 8", role: "General"},
+            {name: "Member 9", role: "General"},
+            {name: "Member 10", role: "General"},
+            {name: "Member 11", role: "General"},
+            {name: "Member 12", role: "General"},
+            {name: "Member 13", role: "General"},
+            {name: "Member 14", role: "General"},
+            {name: "Member 15", role: "General"}
+        ];
+
+        let appData = JSON.parse(localStorage.getItem('nobinBoron2026Data_v2')) || {
+            funds: {},
+            costs: [],
+            userDecors: []
+        };
+
+        function saveData() { 
+            localStorage.setItem('nobinBoron2026Data_v2', JSON.stringify(appData)); 
+        }
+        
+        function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
+        function toggleTheme() {
+            const current = document.documentElement.getAttribute('data-theme');
+            current === 'dark' ? document.documentElement.removeAttribute('data-theme') : document.documentElement.setAttribute('data-theme', 'dark');
+        }
+
+        function showWelcomeScreen() {
+            document.querySelectorAll('.section-content').forEach(s => s.style.display = 'none');
+            document.querySelectorAll('.menu-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById('welcome-sec').style.display = 'block';
+        }
+
+        function openSection(evt, sectionId) {
+            document.getElementById('welcome-sec').style.display = 'none';
+            document.querySelectorAll('.section-content').forEach(s => s.style.display = 'none');
+            document.querySelectorAll('.menu-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(sectionId).style.display = 'block';
+            evt.currentTarget.classList.add('active');
+            initSectionLoaders();
+        }
+
+        window.onload = function() { 
+            showWelcomeScreen(); 
+            initSectionLoaders(); 
+            const today = new Date().toISOString().split('T')[0];
+            if(document.getElementById('search-fund-date')) document.getElementById('search-fund-date').value = today;
+            if(document.getElementById('search-cost-date')) document.getElementById('search-cost-date').value = today;
+            checkDailyFund();
+            checkDailyCost();
+        };
+
+        function initSectionLoaders() {
+            calculateSummaries();
+            renderMembers();
+            renderUserDecors();
+        }
+
+        // Fund Tracking Controls
+        function saveDailyFund() {
+            const pass = document.getElementById('fund-pass').value;
+            if(pass !== MASTER_PASS) { alert("❌ ভুল পাসওয়ার্ড! ডাটা সেভ করা সম্ভব নয়।"); return; }
+            
+            const date = document.getElementById('input-fund-date').value;
+            const amount = parseFloat(document.getElementById('input-fund-amount').value) || 0;
+            if(date && amount > 0) {
+                appData.funds[date] = amount;
+                saveData();
+                calculateSummaries();
+                checkDailyFund();
+                alert('💰 ফান্ড ডাটা সফলভাবে সেভ হয়েছে!');
+                document.getElementById('input-fund-amount').value = '';
+                document.getElementById('fund-pass').value = '';
+            }
+        }
+        
+        function checkDailyFund() {
+            const date = document.getElementById('search-fund-date').value;
+            const res = document.getElementById('fund-search-result');
+            if(!date) return;
+            
+            res.innerHTML = '';
+            
+            if(appData.funds[date]) {
+                const item = document.createElement('div');
+                item.className = 'fund-item-box';
+                item.innerHTML = `<span style="font-size: 18px; font-weight: bold; color: #10b981;">📈 এই তারিখে ফান্ড কালেকশন: ${appData.funds[date]} টাকা</span> 
+                                  <button class="btn-delete" onclick="deleteFund('${date}')">Delete</button>`;
+                res.appendChild(item);
+            } else {
+                res.innerHTML = "<p style='font-size: 18px; font-weight: bold; color: orange;'>❌ এই তারিখে কোনো রেকর্ড নেই।</p>";
+            }
+        }
+
+        function deleteFund(date) {
+            const pass = prompt("এই তারিখের ফান্ড এন্ট্রিটি ডিলিট করতে অ্যাডমিন পাসওয়ার্ড দিন:");
+            if(pass !== MASTER_PASS) { alert("❌ ভুল পাসওয়ার্ড!"); return; }
+
+            delete appData.funds[date];
+            saveData();
+            calculateSummaries();
+            checkDailyFund();
+            alert("🗑️ ফান্ড ডাটা ডিলিট করা হয়েছে এবং মোট হিসাব আপডেট হয়েছে!");
+        }
+
+        // Managing Members Render
+        function renderMembers() {
+            const container = document.getElementById('members-container');
+            container.innerHTML = '';
+            permanentMembers.forEach((m) => {
+                const card = document.createElement('div');
+                card.className = `member-card ${m.role.toLowerCase() === 'admin' ? 'admin' : ''}`;
+                card.innerText = m.role === 'Admin' ? `👑 [Admin] ${m.name}` : `👤 ${m.name}`;
+                container.appendChild(card);
+            });
+        }
+
+        // Decoration Persistent Logic
+        function uploadUserDecor() {
+            const title = document.getElementById('user-decor-title').value;
+            const fileInput = document.getElementById('user-decor-file');
+
+            if(!title || !fileInput.files[0]) { alert("দয়া করে নাম ও ছবি দিন।"); return; }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                appData.userDecors.push({title: title, img: e.target.result});
+                saveData();
+                renderUserDecors();
+                document.getElementById('user-decor-title').value = '';
+                fileInput.value = '';
+                alert('🎨 গ্যালারিতে ছবি পার্মানেন্টলি সেভ হয়েছে!');
+            };
+            reader.readAsDataURL(fileInput.files[0]);
+        }
+        
+        function renderUserDecors() {
+            const uGallery = document.getElementById('user-gallery');
+            uGallery.innerHTML = '';
+            appData.userDecors.forEach(d => {
+                const item = document.createElement('div');
+                item.className = 'gallery-item';
+                item.innerHTML = `<img src="${d.img}"><p>${d.title}</p>`;
+                uGallery.appendChild(item);
+            });
+        }
+
+        // Cost Operations
+        function saveDailyCost() {
+            const pass = document.getElementById('cost-pass').value;
+            if(pass !== MASTER_PASS) { alert("❌ ভুল পাসওয়ার্ড!"); return; }
+
+            const date = document.getElementById('input-cost-date').value;
+            const detail = document.getElementById('input-cost-details').value;
+            const amount = parseFloat(document.getElementById('input-cost-amount').value) || 0;
+            
+            if(date && detail && amount > 0) {
+                appData.costs.push({id: Date.now(), date: date, detail: detail, amount: amount});
+                saveData();
+                calculateSummaries();
+                checkDailyCost();
+                document.getElementById('input-cost-details').value = '';
+                document.getElementById('input-cost-amount').value = '';
+                document.getElementById('cost-pass').value = '';
+                alert('🛑 খরচের এন্ট্রি ডেটাবেজে সফলভাবে স্থায়ী করা হয়েছে!');
+            }
+        }
+        
+        function checkDailyCost() {
+            const date = document.getElementById('search-cost-date').value;
+            const res = document.getElementById('cost-search-result');
+            const totalOutput = document.getElementById('cost-date-total-output');
+            if(!date) return;
+            
+            res.innerHTML = '';
+            
+            const filtered = appData.costs.filter(c => c.date === date);
+            let dailyTotal = 0;
+            
+            if(filtered.length === 0) { 
+                totalOutput.innerText = "💸 এই তারিখে মোট খরচ হয়েছে: ০ টাকা";
+                res.innerHTML = "<p>✅ এই তারিখে কোনো খরচ নথিভুক্ত নেই।</p>"; 
+                return; 
+            }
+
+            filtered.forEach(c => {
+                dailyTotal += c.amount;
+                const item = document.createElement('div');
+                item.className = 'cost-item';
+                item.innerHTML = `<span><b>${c.detail}</b>: ${c.amount} টাকা</span> 
+                                  <button class="btn-delete" onclick="deleteCost(${c.id})">Delete</button>`;
+                res.appendChild(item);
+            });
+            
+            totalOutput.innerText = `💸 এই তারিখে মোট খরচ হয়েছে: ${dailyTotal.toLocaleString('bn-BD')} টাকা`;
+        }
+        
+        function deleteCost(id) {
+            const pass = prompt("এই এন্ট্রিটি ডিলিট করতে অ্যাডমিন পাসওয়ার্ড দিন:");
+            if(pass !== MASTER_PASS) { alert("❌ ভুল পাসওয়ার্ড!"); return; }
+
+            appData.costs = appData.costs.filter(c => c.id !== id);
+            saveData();
+            calculateSummaries();
+            checkDailyCost();
+            alert("🗑️ এন্ট্রি ডিলিট করা হয়েছে!");
+        }
+
+        // লাইভ অটোমেটিক গ্লোবাল ম্যাথ ইঞ্জিন (ফান্ড - খরচ = অবশিষ্ট ফান্ড ব্যালেন্স যোগ করা হয়েছে)
+        function calculateSummaries() {
+            let totalFund = 0;
+            let totalCost = 0;
+            
+            // মোট ফান্ডের হিসাব
+            for(let key in appData.funds) { 
+                let val = parseFloat(appData.funds[key]);
+                if(!isNaN(val)) { totalFund += val; }
+            }
+            
+            // মোট খরচের হিসাব
+            if(Array.isArray(appData.costs)) {
+                appData.costs.forEach(c => { 
+                    let val = parseFloat(c.amount);
+                    if(!isNaN(val)) { totalCost += val; }
+                });
+            }
+            
+            // অবশিষ্ট ফান্ডের লাইভ বিয়োগফল হিসাব
+            let remainingBalance = totalFund - totalCost;
+            
+            // ডোম এ আপডেট
+            document.getElementById('display-total-fund').innerText = totalFund.toLocaleString('bn-BD');
+            document.getElementById('display-total-cost').innerText = totalCost.toLocaleString('bn-BD');
+            document.getElementById('display-remaining-balance').innerText = remainingBalance.toLocaleString('bn-BD');
+            
+            // যদি অবশিষ্ট টাকা ০ এর নিচে চলে যায় (অর্থাৎ বাজেট ওভার হয়ে যায়) তবে কালার ইন্ডিকেটর লাল হবে, নতুবা নীল থাকবে
+            const balanceHero = document.getElementById('balance-hero-box');
+            if(remainingBalance < 0) {
+                balanceHero.style.color = '#ef4444';
+                balanceHero.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+            } else {
+                balanceHero.style.color = '#3b82f6';
+                balanceHero.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+            }
+        }
+    </script>
+</body>
+</html>
