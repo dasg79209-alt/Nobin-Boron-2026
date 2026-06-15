@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nobin Boron 2026 - Automatic Calculator Portal</title>
+    <title>Nobin Boron 2026 - Live Shared Portal</title>
     <style>
         /* CSS Reset & Design Variables */
         * {
@@ -303,7 +303,6 @@
             text-align: center;
         }
 
-        /* জোড়া হিরো ডিসপ্লে স্টাইল (ফান্ড ও ব্যালেন্স পাশাপাশি সুন্দর দেখানোর জন্য) */
         .cost-hero-flex {
             display: flex;
             gap: 20px;
@@ -327,6 +326,9 @@
         }
         footer { position: relative; z-index: 10; text-align: center; padding: 25px; color: #fff; font-weight: bold; margin-top: auto; background: rgba(0,0,0,0.7); letter-spacing: 2px; }
     </style>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 
@@ -447,35 +449,48 @@
     <script>
         const MASTER_PASS = "2008";
 
+        // মেম্বারদের নির্ধারিত পার্মানেন্ট অ্যারে
         const permanentMembers = [
-            {name: "Gopal ", role: "Admin"},
+            {name: "Gopal (Admin)", role: "Admin"},
             {name: "Member 1", role: "General"},
             {name: "Member 2", role: "General"},
             {name: "Member 3", role: "General"},
-            {name: "Member 4", role: "General"},
-            {name: "Member 5", role: "General"},
-            {name: "Member 6", role: "General"},
-            {name: "Member 7", role: "General"},
-            {name: "Member 8", role: "General"},
-            {name: "Member 9", role: "General"},
-            {name: "Member 10", role: "General"},
-            {name: "Member 11", role: "General"},
-            {name: "Member 12", role: "General"},
-            {name: "Member 13", role: "General"},
-            {name: "Member 14", role: "General"},
-            {name: "Member 15", role: "General"}
+            {name: "Member 4", role: "General"}
         ];
 
-        let appData = JSON.parse(localStorage.getItem('nobinBoron2026Data_v2')) || {
+        // ⚠️ গুরুত্বপূর্ণ ধাপ: আপনার ফায়ারবেজ প্রজেক্টের কন্টেইনার লিংকটি এখানে দিন
+        // গুগল ফায়ারবেজে প্রজেক্ট খুলে Realtime Database তৈরি করে তার URL-টি নিচের লাইনে বসিয়ে দিন।
+        const firebaseConfig = {
+            databaseURL: "https://nobin-boron-2026-default-rtdb.firebaseio.com/" 
+        };
+        
+        // ফায়ারবেজ ইনিশিয়ালাইজেশন
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // গ্লোবাল অনলাইন অবজেক্ট ডেটাবেজ হোল্ডার
+        let appData = {
             funds: {},
-            costs: [],
-            userDecors: []
+            costs: {},
+            userDecors: {}
         };
 
-        function saveData() { 
-            localStorage.setItem('nobinBoron2026Data_v2', JSON.stringify(appData)); 
-        }
-        
+        // ফায়ারবেজ লাইভ লিসেনার (ডাটাবেজে যেকোনো ফোন থেকে ডেটা চেঞ্জ হলেই স্বয়ংক্রিয়ভাবে সব ফোনে রিফ্রেশ ছাড়া চেঞ্জ হবে)
+        db.ref('nobinBoron2026').on('value', (snapshot) => {
+            const data = snapshot.val();
+            if(data) {
+                appData.funds = data.funds || {};
+                appData.costs = data.costs || {};
+                appData.userDecors = data.userDecors || {};
+            } else {
+                appData = { funds: {}, costs: {}, userDecors: {} };
+            }
+            calculateSummaries();
+            checkDailyFund();
+            checkDailyCost();
+            renderUserDecors();
+        });
+
         function toggleSidebar() { document.getElementById('sidebar').classList.toggle('active'); }
         function toggleTheme() {
             const current = document.documentElement.getAttribute('data-theme');
@@ -490,216 +505,4 @@
 
         function openSection(evt, sectionId) {
             document.getElementById('welcome-sec').style.display = 'none';
-            document.querySelectorAll('.section-content').forEach(s => s.style.display = 'none');
-            document.querySelectorAll('.menu-tab').forEach(t => t.classList.remove('active'));
-            document.getElementById(sectionId).style.display = 'block';
-            evt.currentTarget.classList.add('active');
-            initSectionLoaders();
-        }
-
-        window.onload = function() { 
-            showWelcomeScreen(); 
-            initSectionLoaders(); 
-            const today = new Date().toISOString().split('T')[0];
-            if(document.getElementById('search-fund-date')) document.getElementById('search-fund-date').value = today;
-            if(document.getElementById('search-cost-date')) document.getElementById('search-cost-date').value = today;
-            checkDailyFund();
-            checkDailyCost();
-        };
-
-        function initSectionLoaders() {
-            calculateSummaries();
-            renderMembers();
-            renderUserDecors();
-        }
-
-        // Fund Tracking Controls
-        function saveDailyFund() {
-            const pass = document.getElementById('fund-pass').value;
-            if(pass !== MASTER_PASS) { alert("❌ ভুল পাসওয়ার্ড! ডাটা সেভ করা সম্ভব নয়।"); return; }
-            
-            const date = document.getElementById('input-fund-date').value;
-            const amount = parseFloat(document.getElementById('input-fund-amount').value) || 0;
-            if(date && amount > 0) {
-                appData.funds[date] = amount;
-                saveData();
-                calculateSummaries();
-                checkDailyFund();
-                alert('💰 ফান্ড ডাটা সফলভাবে সেভ হয়েছে!');
-                document.getElementById('input-fund-amount').value = '';
-                document.getElementById('fund-pass').value = '';
-            }
-        }
         
-        function checkDailyFund() {
-            const date = document.getElementById('search-fund-date').value;
-            const res = document.getElementById('fund-search-result');
-            if(!date) return;
-            
-            res.innerHTML = '';
-            
-            if(appData.funds[date]) {
-                const item = document.createElement('div');
-                item.className = 'fund-item-box';
-                item.innerHTML = `<span style="font-size: 18px; font-weight: bold; color: #10b981;">📈 এই তারিখে ফান্ড কালেকশন: ${appData.funds[date]} টাকা</span> 
-                                  <button class="btn-delete" onclick="deleteFund('${date}')">Delete</button>`;
-                res.appendChild(item);
-            } else {
-                res.innerHTML = "<p style='font-size: 18px; font-weight: bold; color: orange;'>❌ এই তারিখে কোনো রেকর্ড নেই।</p>";
-            }
-        }
-
-        function deleteFund(date) {
-            const pass = prompt("এই তারিখের ফান্ড এন্ট্রিটি ডিলিট করতে অ্যাডমিন পাসওয়ার্ড দিন:");
-            if(pass !== MASTER_PASS) { alert("❌ ভুল পাসওয়ার্ড!"); return; }
-
-            delete appData.funds[date];
-            saveData();
-            calculateSummaries();
-            checkDailyFund();
-            alert("🗑️ ফান্ড ডাটা ডিলিট করা হয়েছে এবং মোট হিসাব আপডেট হয়েছে!");
-        }
-
-        // Managing Members Render
-        function renderMembers() {
-            const container = document.getElementById('members-container');
-            container.innerHTML = '';
-            permanentMembers.forEach((m) => {
-                const card = document.createElement('div');
-                card.className = `member-card ${m.role.toLowerCase() === 'admin' ? 'admin' : ''}`;
-                card.innerText = m.role === 'Admin' ? `👑 [Admin] ${m.name}` : `👤 ${m.name}`;
-                container.appendChild(card);
-            });
-        }
-
-        // Decoration Persistent Logic
-        function uploadUserDecor() {
-            const title = document.getElementById('user-decor-title').value;
-            const fileInput = document.getElementById('user-decor-file');
-
-            if(!title || !fileInput.files[0]) { alert("দয়া করে নাম ও ছবি দিন।"); return; }
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                appData.userDecors.push({title: title, img: e.target.result});
-                saveData();
-                renderUserDecors();
-                document.getElementById('user-decor-title').value = '';
-                fileInput.value = '';
-                alert('🎨 গ্যালারিতে ছবি পার্মানেন্টলি সেভ হয়েছে!');
-            };
-            reader.readAsDataURL(fileInput.files[0]);
-        }
-        
-        function renderUserDecors() {
-            const uGallery = document.getElementById('user-gallery');
-            uGallery.innerHTML = '';
-            appData.userDecors.forEach(d => {
-                const item = document.createElement('div');
-                item.className = 'gallery-item';
-                item.innerHTML = `<img src="${d.img}"><p>${d.title}</p>`;
-                uGallery.appendChild(item);
-            });
-        }
-
-        // Cost Operations
-        function saveDailyCost() {
-            const pass = document.getElementById('cost-pass').value;
-            if(pass !== MASTER_PASS) { alert("❌ ভুল পাসওয়ার্ড!"); return; }
-
-            const date = document.getElementById('input-cost-date').value;
-            const detail = document.getElementById('input-cost-details').value;
-            const amount = parseFloat(document.getElementById('input-cost-amount').value) || 0;
-            
-            if(date && detail && amount > 0) {
-                appData.costs.push({id: Date.now(), date: date, detail: detail, amount: amount});
-                saveData();
-                calculateSummaries();
-                checkDailyCost();
-                document.getElementById('input-cost-details').value = '';
-                document.getElementById('input-cost-amount').value = '';
-                document.getElementById('cost-pass').value = '';
-                alert('🛑 খরচের এন্ট্রি ডেটাবেজে সফলভাবে স্থায়ী করা হয়েছে!');
-            }
-        }
-        
-        function checkDailyCost() {
-            const date = document.getElementById('search-cost-date').value;
-            const res = document.getElementById('cost-search-result');
-            const totalOutput = document.getElementById('cost-date-total-output');
-            if(!date) return;
-            
-            res.innerHTML = '';
-            
-            const filtered = appData.costs.filter(c => c.date === date);
-            let dailyTotal = 0;
-            
-            if(filtered.length === 0) { 
-                totalOutput.innerText = "💸 এই তারিখে মোট খরচ হয়েছে: ০ টাকা";
-                res.innerHTML = "<p>✅ এই তারিখে কোনো খরচ নথিভুক্ত নেই।</p>"; 
-                return; 
-            }
-
-            filtered.forEach(c => {
-                dailyTotal += c.amount;
-                const item = document.createElement('div');
-                item.className = 'cost-item';
-                item.innerHTML = `<span><b>${c.detail}</b>: ${c.amount} টাকা</span> 
-                                  <button class="btn-delete" onclick="deleteCost(${c.id})">Delete</button>`;
-                res.appendChild(item);
-            });
-            
-            totalOutput.innerText = `💸 এই তারিখে মোট খরচ হয়েছে: ${dailyTotal.toLocaleString('bn-BD')} টাকা`;
-        }
-        
-        function deleteCost(id) {
-            const pass = prompt("এই এন্ট্রিটি ডিলিট করতে অ্যাডমিন পাসওয়ার্ড দিন:");
-            if(pass !== MASTER_PASS) { alert("❌ ভুল পাসওয়ার্ড!"); return; }
-
-            appData.costs = appData.costs.filter(c => c.id !== id);
-            saveData();
-            calculateSummaries();
-            checkDailyCost();
-            alert("🗑️ এন্ট্রি ডিলিট করা হয়েছে!");
-        }
-
-        // লাইভ অটোমেটিক গ্লোবাল ম্যাথ ইঞ্জিন (ফান্ড - খরচ = অবশিষ্ট ফান্ড ব্যালেন্স যোগ করা হয়েছে)
-        function calculateSummaries() {
-            let totalFund = 0;
-            let totalCost = 0;
-            
-            // মোট ফান্ডের হিসাব
-            for(let key in appData.funds) { 
-                let val = parseFloat(appData.funds[key]);
-                if(!isNaN(val)) { totalFund += val; }
-            }
-            
-            // মোট খরচের হিসাব
-            if(Array.isArray(appData.costs)) {
-                appData.costs.forEach(c => { 
-                    let val = parseFloat(c.amount);
-                    if(!isNaN(val)) { totalCost += val; }
-                });
-            }
-            
-            // অবশিষ্ট ফান্ডের লাইভ বিয়োগফল হিসাব
-            let remainingBalance = totalFund - totalCost;
-            
-            // ডোম এ আপডেট
-            document.getElementById('display-total-fund').innerText = totalFund.toLocaleString('bn-BD');
-            document.getElementById('display-total-cost').innerText = totalCost.toLocaleString('bn-BD');
-            document.getElementById('display-remaining-balance').innerText = remainingBalance.toLocaleString('bn-BD');
-            
-            // যদি অবশিষ্ট টাকা ০ এর নিচে চলে যায় (অর্থাৎ বাজেট ওভার হয়ে যায়) তবে কালার ইন্ডিকেটর লাল হবে, নতুবা নীল থাকবে
-            const balanceHero = document.getElementById('balance-hero-box');
-            if(remainingBalance < 0) {
-                balanceHero.style.color = '#ef4444';
-                balanceHero.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
-            } else {
-                balanceHero.style.color = '#3b82f6';
-                balanceHero.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
-            }
-        }
-    </script>
-</body>
-</html>
